@@ -81,27 +81,19 @@ public class HashedList<T> implements Iterable<T> {
     }
 
     public void addFirst(T item) {
+        int index = hash(item);
+
         if (size == 0) {
             first = new Node<>(item);
-            last = first;
-            int index = hash(item);
-
             buckets[index] = first;
+            last = first;
         }
 
         else {
             Node<T> newNode = new Node<>(item);
-            first.before = newNode;
             newNode.after = first;
+            first.before = newNode;
             first = newNode;
-
-            if (size == 1) {
-                last = first.after;
-                last.before = first;
-                last.after = null;
-            }
-
-            int index = hash(item);
 
             if (buckets[index] == null) {
                 buckets[index] = newNode;
@@ -121,21 +113,19 @@ public class HashedList<T> implements Iterable<T> {
 
     public void addLast(T item) {
 
+        int index = hash(item);
+
         if (size == 0) {
             last = new Node<>(item);
-            first = last;
-            int index = hash(item);
-
             buckets[index] = first;
+            first = last;
         }
 
         else {
             Node<T> newNode = new Node<>(item);
-            last.after = newNode;
             newNode.before = last;
+            last.after = newNode;
             last = newNode;
-
-            int index = hash(item);
 
             if (buckets[index] == null) {
                 buckets[index] = newNode;
@@ -157,8 +147,11 @@ public class HashedList<T> implements Iterable<T> {
             return null;
         }
 
-        Node<T> nodeToRemove = first;
-        first = nodeToRemove.after;
+        Node<T> toRemove = first;
+        int index = hash(toRemove.data);
+
+        first = toRemove.after;
+
         if (first != null) {
             first.before = null;
         }
@@ -167,22 +160,22 @@ public class HashedList<T> implements Iterable<T> {
             last = first;
         }
 
-        int index = hash(nodeToRemove.data);
-        if (buckets[index] == nodeToRemove) {
-            buckets[index] = nodeToRemove.next;
+        if (buckets[index].equals(toRemove)) {
+            buckets[index] = toRemove.next;
         } else {
             Node<T> cur = buckets[index];
-            while (cur.next != nodeToRemove) {
+            while (!cur.next.equals(toRemove)) {
                 cur = cur.next;
             }
-            cur.next = nodeToRemove.next;
+            cur.next = toRemove.next;
         }
         size--;
-        if (size() < maxLoadFactor * capacity()) {
-            resize(capacity() * 2);
+
+        if (size() < (maxLoadFactor * capacity()) / 4) {
+            resize(capacity() / 2);
         }
 
-        return nodeToRemove.data;
+        return toRemove.data;
     }
 
     public T removeLast() {
@@ -191,31 +184,35 @@ public class HashedList<T> implements Iterable<T> {
             return null;
         }
 
-        Node<T> nodeToRemove = last;
-        last = nodeToRemove.before;
-        last.after = null;
+        Node<T> toRemove = last;
+        last = toRemove.before;
+
+        int index = hash(toRemove.data);
+
+        if (last != null) {
+            last.after = null;
+        }
 
         if (size == 1) {
             first = last;
         }
 
-        int index = hash(nodeToRemove.data);
-
-        if (buckets[index] == nodeToRemove) {
+        if (buckets[index] == toRemove) {
             buckets[index] = buckets[index].next;
         } else {
             Node<T> cur = buckets[index];
-            while (cur.next != nodeToRemove) {
+            while (!cur.next.equals(toRemove)) {
                 cur = cur.next;
             }
-            cur.next = nodeToRemove.next;
+            cur.next = toRemove.next;
         }
         size--;
-        if (size() < maxLoadFactor * capacity()) {
-            resize(capacity() * 2);
+
+        if (size() < (maxLoadFactor * capacity()) / 4) {
+            resize(capacity() / 2);
         }
 
-        return nodeToRemove.data;
+        return toRemove.data;
     }
 
     public boolean contains(T item) {
@@ -242,16 +239,14 @@ public class HashedList<T> implements Iterable<T> {
                 removeFirst();
             } else if (buckets[index] == last) {
                 removeLast();
-            }
-
-            else if (buckets[index] != first && buckets[index] != last) {
+            } else {
 
                 buckets[index].before.after = buckets[index].after;
                 buckets[index] = buckets[index].next;
                 size--;
 
-                if (size() < maxLoadFactor * capacity()) {
-                    resize(capacity() * 2);
+                if (size() < (maxLoadFactor * capacity()) / 4) {
+                    resize(capacity() / 2);
                 }
             }
 
@@ -260,61 +255,37 @@ public class HashedList<T> implements Iterable<T> {
         } else {
 
             for (Node<T> curNode = buckets[index]; curNode != null; curNode = curNode.next) {
+
                 if (curNode.next != null) {
-
                     if (curNode.next.data == item) {
-
                         if (curNode.next.next == null) {
                             curNode.next = null;
-                        }
-
-                        else {
+                        } else {
                             curNode.next = curNode.next.next;
                         }
-
                         size--;
 
-                        if (size() < maxLoadFactor * capacity()) {
-                            resize(capacity() * 2);
+                        if (size() < (maxLoadFactor * capacity()) / 4) {
+                            resize(capacity() / 2);
                         }
-
                         return true;
-
                     }
                 }
             }
         }
-
         return false;
-
     }
 
     private void resize(int newCapacity) {
         Node<T>[] newBuckets = (Node<T>[]) new Node[newCapacity];
+
         for (Node<T> curNode = first; curNode != null; curNode = curNode.after) {
             int newBucket = Math.abs(curNode.data.hashCode() % newCapacity);
             curNode.next = newBuckets[newBucket];
             newBuckets[newBucket] = curNode;
         }
-        buckets = newBuckets;
-    }
 
-    public static void main(String[] args) {
-        HashedList<String> list = new HashedList<>();
-        list.addFirst("apple");
-        list.addFirst("banana");
-        list.addLast("cherry");
-        list.addLast("date");
-        System.out.println(list.toString()); // output: [banana, apple, cherry, date]
-        System.out.println(list.size()); // output: 4
-        System.out.println(list.contains("banana")); // output: true
-        System.out.println(list.contains("orange")); // output: false
-        System.out.println(list.getFirst()); // output: banana
-        System.out.println(list.getLast()); // output: date
-        list.remove("banana");
-        list.remove("cherry");
-        System.out.println(list.toString()); // output: [apple, cherry]
-        System.out.println(list.size()); // output: 2
+        buckets = newBuckets;
     }
 
 }
