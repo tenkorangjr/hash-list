@@ -106,7 +106,7 @@ public class HashedList<T> implements Iterable<T> {
         size++;
 
         if (size() > maxLoadFactor * capacity()) {
-            resize(capacity() / 2);
+            resize(capacity() * 2);
         }
 
     }
@@ -137,7 +137,7 @@ public class HashedList<T> implements Iterable<T> {
 
         size++;
         if (size() > maxLoadFactor * capacity()) {
-            resize(capacity() / 2);
+            resize(capacity() * 2);
         }
     }
 
